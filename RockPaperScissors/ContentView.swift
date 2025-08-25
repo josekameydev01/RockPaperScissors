@@ -9,6 +9,10 @@ import SwiftUI
 
 struct ContentView: View {
     
+    enum RoundResult {
+        case tie, win, lose
+    }
+    
     @State private var numberOfQuestion = 1
     @State private var points = 0
     @State private var showPlayerFeedback = false
@@ -18,28 +22,54 @@ struct ContentView: View {
     
     private var options = ["rock", "paper", "scissors"]
     
+    private var roundResult: RoundResult {
+        if userChoice == appChoice {
+            return .tie
+        }
+        else if userChoice == "rock" && appChoice == "scissors" {
+            return .win
+        } else if userChoice == "paper" && appChoice == "rock" {
+            return .win
+        } else if userChoice == "scissors" && appChoice == "paper" {
+            return .win
+        } else {
+            return .lose
+        }
+    }
+    
+    private var alertTitle: String {
+        switch roundResult {
+        case .tie:
+            return "It's a Tie"
+        case .win:
+            return "You Win!"
+        case .lose:
+            return "You Lose!"
+        }
+    }
+    
+    private var results: String {
+        """
+        App choice: \(appChoice)
+        User choice: \(userChoice)
+        """
+    }
+    
     private var alertMessage: String {
-        if isATie(userChoice: userChoice) {
+        switch roundResult {
+        case .tie:
             return """
-                It is a tie!
-                App choice: \(appChoice)
-                User choice: \(userChoice)
+                \(results)
                 Your score remains the same!
                 """
-        }
-        
-        if userWins(userChoice: userChoice) {
+        case .win:
             return """
-                You win!
-                App choice: \(appChoice)
-                User choice: \(userChoice)
+                \(results)
                 You win 1 point!
                 """
-        } else {
+        case .lose:
             return """
-                You lose!
-                App choice: \(appChoice)
-                User choice: \(userChoice)
+                \(results)
                 You lose 1 point
                 """
         }
@@ -56,9 +86,7 @@ struct ContentView: View {
                 ForEach(0..<3) { number in
                     VStack {
                         Button() {
-                            userChoice = options[number]
-                            appChoice = getAppChoice()
-                            showPlayerFeedback = true
+                            startRound(with: options[number])
                         } label: {
                             Image(options[number])
                                 .resizable()
@@ -74,55 +102,43 @@ struct ContentView: View {
             Text("\(numberOfQuestion) / 10")
                 .navigationTitle("Rock Paper Scissors")
         }
-        .alert("Result", isPresented: $showPlayerFeedback) {
-            Button("OK") {
-                
-                if isATie(userChoice: userChoice) {
-                    points = points
-                } else if userWins(userChoice: userChoice) {
-                    points += 1
-                } else {
-                    points -= 1
-                }
-                
-                
-                if numberOfQuestion >= 10 {
-                    showPlayerFinalScore = true
-                } else {
-                    numberOfQuestion += 1
-                }
-            }
+        .alert(alertTitle, isPresented: $showPlayerFeedback) {
+            Button("OK", action: completeRound)
         } message: {
             Text(alertMessage)
         }
         .alert("Game over!", isPresented: $showPlayerFinalScore) {
-            Button("Play Again") {
-                points = 0
-                numberOfQuestion = 1
-                showPlayerFeedback = false
-                showPlayerFinalScore = false
-            }
+            Button("Play Again", action: resetGame)
         } message: {
             Text("Your final score is: \(points)")
         }
     }
-    private func getAppChoice() -> String {
-        options.randomElement() ?? "paper"
+    private func startRound(with choice: String) {
+        appChoice = options.randomElement() ?? "paper"
+        userChoice = choice
+        showPlayerFeedback = true
     }
-    private func isATie(userChoice: String) -> Bool {
-        return userChoice == appChoice
-    }
-    private func userWins(userChoice: String) -> Bool {
-        
-        if userChoice == "rock" && appChoice == "scissors" {
-            return true
-        } else if userChoice == "paper" && appChoice == "rock" {
-            return true
-        } else if userChoice == "scissors" && appChoice == "paper" {
-            return true
+    private func completeRound() {
+        switch roundResult {
+        case .tie:
+            break
+        case .lose:
+            points -= 1
+        case .win:
+            points += 1
         }
         
-        return false
+        if numberOfQuestion >= 10 {
+            showPlayerFinalScore = true
+        } else {
+            numberOfQuestion += 1
+        }
+    }
+    private func resetGame() {
+        points = 0
+        numberOfQuestion = 1
+        showPlayerFeedback = false
+        showPlayerFinalScore = false
     }
 }
 
